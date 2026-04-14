@@ -30,6 +30,38 @@ int isDirectory(char *arg)
     return 0; // False
 }
 
+void checkSource(char *source, char *destination)
+{
+    if(isDirectory(source) && isDirectory(destination))
+    {
+        return;
+    }
+
+    if(!isDirectory(source) && !isDirectory(destination))
+    {
+        printf("\nZaden z podanych argumentow nie jest sciezka do katalogu\n");
+        exit(-1);
+    }
+
+    if(!isDirectory(source))
+    {
+        printf("\nZrodlo nie jest sciezka do katalogu\n");
+        exit(-1);
+    }
+
+    if(!isDirectory(destination))
+    {
+        printf("\nCel nie jest sciezka do katalogu\n");
+        exit(-1);
+    }
+
+    if(strcmp(source, destination) == 0)
+    {
+        printf("\nSciezki sa takie same!\n");
+        exit(-1);
+    }
+}
+
 int main(int argc, char *argv[])
 {
     if(argc<3)
@@ -38,17 +70,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    if(!isDirectory(argv[1]) && !isDirectory(argv[2]))
-    {
-        printf("\nPodany argument nie jest sciezka do katalogu\n");
-        return -1;
-    }
-
-    if(strcmp(argv[1],argv[2])==0)
-    {
-        printf("\nSciezki sa takie same!\n");
-        return -1;
-    }
+    checkSource(argv[1], argv[2]);
 
     int pauseTime=300;
     int recursion=0;
