@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <unistd.h>
 
 int isDirectory(char *arg)
 {
@@ -71,7 +72,21 @@ int main(int argc, char *argv[])
             sizeBorder=atoi(argv[i]);
         }
     }
+    //tworzenie demona - procesu potomnego 
+    pid_t pid;
+    pid = fork();
 
+    if(pid < 0)
+    {
+        exit(EXIT_FAILURE);
+    }
+    else if (pid > 0)
+    {
+        exit(EXIT_SUCCESS); 
+    }
+    //potem bede sie tam dalej bawił i trzeba zrobis setsid() ustawic lidera sesja
+    //i dzialac na katalogach
+    /*
     while(1)
     {
         // Testy
@@ -81,6 +96,6 @@ int main(int argc, char *argv[])
         printf("\nRozmiar plikow od ktorych maja sie zaczynac duze: %lld\n",sizeBorder);
         break;
     }
-
+*/
     return 0;
 }
