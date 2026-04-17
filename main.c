@@ -13,59 +13,25 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <string.h>
+#include <syslog.h>
 #include <unistd.h>
 
-int isDirectory(char *arg)
-{
-    struct stat s;
+int isDirectory(char *arg);
+void checkSource(char *source, char *destination);
+void detachFromTerminal(void);
+void initDeamon(void);
 
-    if(stat(arg, &s)==0)
-    {
-        if(S_ISDIR(s.st_mode))
-        {
-            return 1; // True
-        }
-    }
 
-    return 0; // False
-}
+int pauseTime = 300;
+int recursion = 0;
+long long sizeBorder = 10024;
 
-void checkSource(char *source, char *destination)
-{
-    if(isDirectory(source) && isDirectory(destination))
-    {
-        return;
-    }
-
-    if(!isDirectory(source) && !isDirectory(destination))
-    {
-        printf("\nZaden z podanych argumentow nie jest sciezka do katalogu\n");
-        exit(-1);
-    }
-
-    if(!isDirectory(source))
-    {
-        printf("\nZrodlo nie jest sciezka do katalogu\n");
-        exit(-1);
-    }
-
-    if(!isDirectory(destination))
-    {
-        printf("\nCel nie jest sciezka do katalogu\n");
-        exit(-1);
-    }
-
-    if(strcmp(source, destination) == 0)
-    {
-        printf("\nSciezki sa takie same!\n");
-        exit(-1);
-    }
-}
 
 int main(int argc, char *argv[])
 {
-    if(argc<3)
+    if (argc < 3)
     {
         printf("\nNieodpowiednia liczba argumentow.\n");
         return -1;
@@ -73,41 +39,28 @@ int main(int argc, char *argv[])
 
     checkSource(argv[1], argv[2]);
 
-    int pauseTime=300;
-    int recursion=0;
-    long long sizeBorder=10024;
-
-    for(int i=3;i<argc;i++)
+    for (int i = 3; i < argc; i++)
     {
-       if(strcmp(argv[i],"-P")==0&&argc>i+1) // Pause
+        if (strcmp(argv[i], "-P") == 0 && argc > i + 1) // Pause
         {
             i++;
-            pauseTime=atoi(argv[i]);
+            pauseTime = atoi(argv[i]);
         }
-        if(strcmp(argv[i],"-R")==0) // Recursion
+        if (strcmp(argv[i], "-R") == 0) // Recursion
         {
-            recursion=1;
+            recursion = 1;
         }
-        if(strcmp(argv[i],"-B")==0&&argc>i+1) // Border
+        if (strcmp(argv[i], "-B") == 0 && argc > i + 1) // Border
         {
             i++;
-            sizeBorder=atoi(argv[i]);
+            sizeBorder = atoi(argv[i]);
         }
     }
-    //tworzenie demona - procesu potomnego 
-    pid_t pid;
-    pid = fork();
+    // tworzenie demona - procesu potomnego
+    initDeamon();
 
-    if(pid < 0)
-    {
-        exit(EXIT_FAILURE);
-    }
-    else if (pid > 0)
-    {
-        exit(EXIT_SUCCESS); 
-    }
-    //potem bede sie tam dalej bawił i trzeba zrobis setsid() ustawic lidera sesja
-    //i dzialac na katalogach
+    // potem bede sie tam dalej bawił i trzeba zrobis setsid() ustawic lidera sesja
+    // i dzialac na katalogach
     /*
     while(1)
     {
@@ -120,4 +73,80 @@ int main(int argc, char *argv[])
     }
 */
     return 0;
+}
+
+int isDirectory(char *arg)
+{
+    struct stat s;
+
+    if (stat(arg, &s) == 0)
+    {
+        if (S_ISDIR(s.st_mode))
+        {
+            return 1; // True
+        }
+    }
+
+    return 0; // False
+}
+
+void checkSource(char *source, char *destination)
+{
+    if (isDirectory(source) && isDirectory(destination))
+    {
+        return;
+    }
+
+    if (!isDirectory(source) && !isDirectory(destination))
+    {
+        printf("\nZaden z podanych argumentow nie jest sciezka do katalogu\n");
+        exit(-1);
+    }
+
+    if (!isDirectory(source))
+    {
+        printf("\nZrodlo nie jest sciezka do katalogu\n");
+        exit(-1);
+    }
+
+    if (!isDirectory(destination))
+    {
+        printf("\nCel nie jest sciezka do katalogu\n");
+        exit(-1);
+    }
+
+    if (strcmp(source, destination) == 0)
+    {
+        printf("\nSciezki sa takie same!\n");
+        exit(-1);
+    }
+}
+
+void initDeamon(void)
+{
+    pid_t pid;
+    pid = fork();
+
+    if (pid < 0)
+    {
+        exit(EXIT_FAILURE);
+    }
+    else if (pid > 0)
+    {
+        exit(EXIT_SUCCESS);
+    }
+    detachFromTerminal();
+}
+
+void detachFromTerminal(void)
+{
+    if (setsid() < 0)
+    {
+        syslog(LOG_ERR, "Error with session opening\n");
+        exit(EXIT_FAILURE);
+    }
+
+    umask(0);
+    openlog("sync_daemon", LOG_PID, LOG_DAEMON);
+    syslog(LOG_INFO, "Demon synchronizacji uruchomiony.");
 }
