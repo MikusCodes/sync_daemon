@@ -9,7 +9,7 @@
 // -R (Recursion) includes directories in soft works
 // -B <size> (Border) set border between big and small files
 // -P <time> (Pause) time in seconds how often software should sync directories
-
+#define _XOPEN_SOURCE 700
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -17,12 +17,14 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <signal.h>
 
 int isDirectory(char *arg);
 void parseArguments(int argc, char *argv[]);
 void checkSource(int argc, char *source, char *destination);
 void detachFromTerminal(void);
 void initDeamon(void);
+void setupSignals(void);
 void my_handler(int sig);
 void exitFunction(int sig);
 
@@ -37,6 +39,12 @@ int main(int argc, char *argv[])
     checkSource(argc, argv[1], argv[2]);
     parseArguments(argc, argv);
     initDeamon();
+    setupSignals();
+
+    while(!exitSignal)
+    {
+        
+    }
 
     while (1)
     {
@@ -160,6 +168,29 @@ void detachFromTerminal(void)
     umask(0);
     openlog("sync_daemon", LOG_PID, LOG_DAEMON);
     syslog(LOG_INFO, "Demon synchronizacji uruchomiony.");
+}
+
+void setupSignals(void)
+{
+    struct sigaction myAction;
+    myAction.sa_flags = 0;
+    sigfillset(&myAction.sa_mask);
+
+    // Rejestracja SIGUSR1 (Budzenie)
+    myAction.sa_handler = my_handler;
+    if (sigaction(SIGUSR1, &myAction, NULL) < 0)
+    {
+        perror("Błąd rejestracji SIGUSR1");
+        exit(EXIT_FAILURE);
+    }
+
+    // Rejestracja SIGUSR2 (Zamykanie)
+    myAction.sa_handler = exitFunction;
+    if (sigaction(SIGUSR2, &myAction, NULL) < 0)
+    {
+        perror("Błąd rejestracji SIGUSR2");
+        exit(EXIT_FAILURE);
+    }
 }
 
 void my_handler(int sig)
