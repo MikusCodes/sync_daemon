@@ -56,3 +56,4 @@ dkms.conf
 main
 test
 *.txt
+sync_daemon

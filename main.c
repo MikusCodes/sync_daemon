@@ -19,58 +19,36 @@
 #include <unistd.h>
 
 int isDirectory(char *arg);
-void checkSource(char *source, char *destination);
+void parseArguments(int argc, char *argv[]);
+void checkSource(int argc, char *source, char *destination);
 void detachFromTerminal(void);
 void initDeamon(void);
-
+void my_handler(int sig);
+void exitFunction(int sig);
 
 int pauseTime = 300;
 int recursion = 0;
 long long sizeBorder = 10024;
-
+volatile int signalReceived = 0;
+volatile int exitSignal = 0;
 
 int main(int argc, char *argv[])
 {
-    if (argc < 3)
-    {
-        printf("\nNieodpowiednia liczba argumentow.\n");
-        return -1;
-    }
-
-    checkSource(argv[1], argv[2]);
-
-    for (int i = 3; i < argc; i++)
-    {
-        if (strcmp(argv[i], "-P") == 0 && argc > i + 1) // Pause
-        {
-            i++;
-            pauseTime = atoi(argv[i]);
-        }
-        if (strcmp(argv[i], "-R") == 0) // Recursion
-        {
-            recursion = 1;
-        }
-        if (strcmp(argv[i], "-B") == 0 && argc > i + 1) // Border
-        {
-            i++;
-            sizeBorder = atoi(argv[i]);
-        }
-    }
-    // tworzenie demona - procesu potomnego
+    checkSource(argc, argv[1], argv[2]);
+    parseArguments(argc, argv);
     initDeamon();
 
-    // potem bede sie tam dalej bawił i trzeba zrobis setsid() ustawic lidera sesja
-    // i dzialac na katalogach
-    /*
-    while(1)
+    while (1)
     {
         // Testy
-        printf("\nZadzialalo!\n");
-        printf("\nPauza: %d\n",pauseTime);
-        printf("\nRekurencja: %d\n",recursion);
-        printf("\nRozmiar plikow od ktorych maja sie zaczynac duze: %lld\n",sizeBorder);
-        break;
+        syslog(LOG_INFO, "Demon zyje i czeka...");
+        sleep(30); // Czekaj 30 sekund przed kolejnym wpisem do logu
     }
+
+    // potem bede sie tam dalej bawił i trzeba zrobis setsid() ustawic lidera sesja Done
+    // i dzialac na katalogach
+    /*
+
 */
     return 0;
 }
@@ -90,8 +68,15 @@ int isDirectory(char *arg)
     return 0; // False
 }
 
-void checkSource(char *source, char *destination)
+void checkSource(int argumentCount, char *source, char *destination)
 {
+
+    if (argumentCount < 3)
+    {
+        printf("\nNieodpowiednia liczba argumentow.\n");
+        exit(-1);
+    }
+
     if (isDirectory(source) && isDirectory(destination))
     {
         return;
@@ -122,6 +107,31 @@ void checkSource(char *source, char *destination)
     }
 }
 
+void parseArguments(int argc, char *argv[])
+{
+    for (int i = 3; i < argc; i++)
+    {
+        if (strcmp(argv[i], "-P") == 0 && argc > i + 1) // pause
+        {
+            i++;
+            pauseTime = atoi(argv[i]);
+        }
+        else if (strcmp(argv[i], "-R") == 0) // Recursion
+        {
+            recursion = 1;
+        }
+        else if (strcmp(argv[i], "-B") == 0 && argc > i + 1) // Border
+        {
+            i++;
+            sizeBorder = atoll(argv[i]); // atoll dla long long
+        }
+        else
+        {
+            printf("Nieznany argument lub brak wartosci: %s\n", argv[i]);
+        }
+    }
+}
+
 void initDeamon(void)
 {
     pid_t pid;
@@ -131,6 +141,7 @@ void initDeamon(void)
     {
         exit(EXIT_FAILURE);
     }
+
     else if (pid > 0)
     {
         exit(EXIT_SUCCESS);
@@ -149,4 +160,16 @@ void detachFromTerminal(void)
     umask(0);
     openlog("sync_daemon", LOG_PID, LOG_DAEMON);
     syslog(LOG_INFO, "Demon synchronizacji uruchomiony.");
+}
+
+void my_handler(int sig)
+{
+    syslog(LOG_INFO, "Daemon received signal SIGUSR1\n");
+    signalReceived = 1;
+}
+
+void exitFunction(int sig)
+{
+    syslog(LOG_INFO, "Daemon received signal SIGUSR2\n");
+    exitSignal = 1;
 }
