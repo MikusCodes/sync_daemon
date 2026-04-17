@@ -41,10 +41,10 @@ int main(int argc, char *argv[])
     initDeamon();
     setupSignals();
 
-    while(!exitSignal)
+    /*while(!exitSignal)
     {
-        
-    }
+
+    }*/
 
     while (1)
     {
@@ -85,11 +85,6 @@ void checkSource(int argumentCount, char *source, char *destination)
         exit(-1);
     }
 
-    if (isDirectory(source) && isDirectory(destination))
-    {
-        return;
-    }
-
     if (!isDirectory(source) && !isDirectory(destination))
     {
         printf("\nZaden z podanych argumentow nie jest sciezka do katalogu\n");
@@ -112,6 +107,11 @@ void checkSource(int argumentCount, char *source, char *destination)
     {
         printf("\nSciezki sa takie same!\n");
         exit(-1);
+    }
+
+    if (isDirectory(source) && isDirectory(destination))
+    {
+        return;
     }
 }
 
