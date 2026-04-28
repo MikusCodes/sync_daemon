@@ -35,7 +35,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-#include <utime.h>
+#include <utime.h> 
 #include <dirent.h>
 
 int isDirectory(char *arg);
@@ -136,7 +136,7 @@ void checkSource(int argumentCount, char *source, char *destination)
     if (strcmp(source, destination) == 0)
     {
         printf("\nSciezki sa takie same!\n");
-        exit(-1);
+        exit(-1); 
     }
 
     if (isDirectory(source) && isDirectory(destination))
@@ -266,7 +266,7 @@ void copyFile(const char *src_path, const char *dst_path, long long border)
         close(src_fd);
         return;
     }
-
+    //male pliki zapisywanie przez read/write
     if (st.st_size < border)
     {
         char buffer[8192];
@@ -284,9 +284,10 @@ void copyFile(const char *src_path, const char *dst_path, long long border)
             }
         }
     }
+    //duze pliki zapisywanie przez mmap
     else
     {
-        if (st.st_size > 0)
+        if (st.st_size > 0) 
         {
             char *map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, src_fd, 0);
             if (map != MAP_FAILED)
@@ -370,10 +371,8 @@ void syncDirectories(const char *src_dir, const char *dst_dir)
         struct stat src_stat;
         if (lstat(src_path, &src_stat) == -1) continue;
 
-        if (S_ISDIR(src_stat.st_mode))
+        if (S_ISDIR(src_stat.st_mode) && recursion)
         {
-            if (recursion)
-            {
                 struct stat dst_stat;
                 if (lstat(dst_path, &dst_stat) == -1)
                 {
@@ -381,7 +380,6 @@ void syncDirectories(const char *src_dir, const char *dst_dir)
                     syslog(LOG_INFO, "Utworzono katalog: %s", dst_path);
                 }
                 syncDirectories(src_path, dst_path);
-            }
         }
         else if (S_ISREG(src_stat.st_mode))
         {
